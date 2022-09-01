@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
+from scipy.optimize import curve_fit
 
 from exptools_demo.src.services.instrument import Instrument
 from exptools_demo.src.services.result_file import ResultFile
@@ -40,4 +40,17 @@ class Measure:
 
     @staticmethod
     def analyze(data: np.ndarray, frequencies: np.ndarray) -> float:
-        raise NotImplementedError
+        if data.ndim > 1:
+            relevant_channel = data[0]
+        else:
+            relevant_channel = data
+        try:
+            popt = curve_fit(
+                lambda x, a, b, c: a * np.exp(-(x - b) ** 2 / (2 * c ** 2)),
+                frequencies,
+                relevant_channel
+            )
+            peak_freq = popt[0][1]
+        except RuntimeError:
+            peak_freq = frequencies[relevant_channel.argmax()]
+        return peak_freq
